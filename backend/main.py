@@ -15,6 +15,17 @@ from audit import log_event, get_audit_trail
 
 app = FastAPI(title="MSME Lending Decision API", version="1.0.0")
 
+@app.on_event("startup")
+async def startup():
+    # Verify /tmp is writable
+    try:
+        test = "/tmp/.render_check"
+        with open(test, "w") as f:
+            f.write("ok")
+        os.remove(test)
+    except Exception:
+        pass  # non-fatal
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
