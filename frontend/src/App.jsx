@@ -7,7 +7,7 @@ import ReviewStep from './ReviewStep'
 import ProcessingView from './ProcessingView'
 import DecisionResult from './DecisionResult'
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API = import.meta.env.VITE_API_URL || 'https://lending-decision-system-4.onrender.com'
 
 // Fetch with retry — handles Render free tier cold start (~30s wake time)
 async function fetchWithRetry(url, options, retries = 3, timeoutMs = 35000) {
