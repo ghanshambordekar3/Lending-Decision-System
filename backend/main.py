@@ -17,14 +17,17 @@ app = FastAPI(title="MSME Lending Decision API", version="1.0.0")
 
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "https://lending-decision-system.vercel.app"
+    "https://lending-decision-system.vercel.app,http://localhost:5173,http://localhost:3000"
 ).split(",")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_methods=["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    allow_credentials=False,
+    max_age=600,
 )
 
 # ── In-memory stores ──────────────────────────────────────────────────────────
