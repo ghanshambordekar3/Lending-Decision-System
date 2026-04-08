@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const STEPS = [
   'Validating business profile…',
@@ -7,7 +7,7 @@ const STEPS = [
   'Generating decision…',
 ]
 
-export default function ProcessingView({ step }) {
+export default function ProcessingView({ step, waking }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -21,6 +21,32 @@ export default function ProcessingView({ step }) {
       <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 8 }}>
         Processing Application
       </h3>
+
+      {/* Waking up banner */}
+      <AnimatePresence>
+        {waking && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            style={{
+              margin: '0 auto 20px',
+              maxWidth: 300,
+              background: 'rgba(245,158,11,0.1)',
+              border: '1px solid rgba(245,158,11,0.3)',
+              borderRadius: 8,
+              padding: '8px 14px',
+              fontSize: '0.78rem',
+              color: '#fcd34d',
+              lineHeight: 1.5,
+            }}
+          >
+            ☕ Server is waking up from sleep.<br />
+            This takes ~30s on the free tier — hang tight!
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <p className="text-muted" style={{ marginBottom: 28 }}>
         Our engine is evaluating your application
       </p>

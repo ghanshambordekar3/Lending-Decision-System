@@ -9,6 +9,24 @@ import DecisionResult from './DecisionResult'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+// Fetch with retry — handles Render free tier cold start (~30s wake time)
+async function fetchWithRetry(url, options, retries = 3, timeoutMs = 35000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal })
+      clearTimeout(timer)
+      return res
+    } catch (err) {
+      clearTimeout(timer)
+      const isLast = attempt === retries
+      if (isLast) throw new Error('Server is unreachable. It may be waking up — please try again in 30 seconds.')
+      await new Promise(r => setTimeout(r, 3000 * attempt))
+    }
+  }
+}
+
 const STEPS = ['Profile', 'Loan', 'Review']
 
 function StepIndicator({ current }) {
@@ -28,8 +46,9 @@ function StepIndicator({ current }) {
 }
 
 export default function App() {
-  const [step, setStep] = useState(0)          // 0=profile 1=loan 2=review 3=processing 4=result
-  const [procStep, setProcStep] = useState(0)  // processing animation step
+  const [step, setStep] = useState(0)
+  const [procStep, setProcStep] = useState(0)
+  const [waking, setWaking] = useState(false)
   const [profile, setProfile] = useState({})
   const [loan, setLoan] = useState({})
   const [result, setResult] = useState(null)
@@ -38,14 +57,22 @@ export default function App() {
   const updateProfile = (k, v) => setProfile(p => ({ ...p, [k]: v }))
   const updateLoan = (k, v) => setLoan(l => ({ ...l, [k]: v }))
 
+  // Ping backend on mount so Render wakes up before user submits
+  useEffect(() => {
+    fetch(`${API}/health`).catch(() => {})
+  }, [])
+
   // Animate processing steps
   useEffect(() => {
     if (step !== 3) return
+    setWaking(false)
     setProcStep(0)
     const timers = [1, 2, 3].map((s, i) =>
       setTimeout(() => setProcStep(s), (i + 1) * 700)
     )
-    return () => timers.forEach(clearTimeout)
+    // Show waking message if still processing after 5s
+    const wakeTimer = setTimeout(() => setWaking(true), 5000)
+    return () => { timers.forEach(clearTimeout); clearTimeout(wakeTimer) }
   }, [step])
 
   const submit = async () => {
@@ -65,7 +92,7 @@ export default function App() {
           purpose: loan.purpose,
         },
       }
-      const res = await fetch(`${API}/api/decision`, {
+      const res = await fetchWithRetry(`${API}/api/decision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -90,6 +117,7 @@ export default function App() {
     setLoan({})
     setResult(null)
     setError(null)
+    setWaking(false)
   }
 
   return (
@@ -161,7 +189,7 @@ export default function App() {
             <ReviewStep key="review" profile={profile} loan={loan} onSubmit={submit} onBack={() => setStep(1)} loading={false} />
           )}
           {step === 3 && (
-            <ProcessingView key="processing" step={procStep} />
+            <ProcessingView key="processing" step={procStep} waking={waking} />
           )}
           {step === 4 && result && (
             <DecisionResult key="result" result={result} onReset={reset} />
