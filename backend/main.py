@@ -15,7 +15,10 @@ from audit import log_event, get_audit_trail
 
 app = FastAPI(title="MSME Lending Decision API", version="1.0.0")
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://lending-decision-system.vercel.app"
+).split(",")
 
 app.add_middleware(
     CORSMiddleware,
